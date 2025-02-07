@@ -16,7 +16,7 @@ curl -fsSL https://ollama.com/install.sh | sh
 ```
 
 ## `Step Two`
-Download deepseek-r1 model to your local. Please refer to the model [specification](https://ollama.com/library/deepseek-r1), and find the model best fit your hardware specification, for instance my desktop has an RTX Titan with 20GB VRAM and 64GM RAM, the 32b model best fit my need:
+Download the DeepSeek-R1 model to your local machine. Please refer to the model [specifications](https://ollama.com/library/deepseek-r1) to select the version that best suits your hardware configuration. For example, my desktop, equipped with an RTX Titan (20GB VRAM) and 64GB RAM, performs optimally with the 32b model.
 
 ```bash
 ollama pull deepseek-r1:32b
@@ -40,5 +40,4 @@ Note: please change the "model_id" in the utils/parameter.yml to the id of the m
 ## `Step Five`
 Open your browser and type in "http://127.0.0.1:5000", and type in your question and submit.
 
-Noted that, the chatbot by default caches your previous conversation, if you wish to clear the cache and restart a new 
-conversation, typ "###" and submit to clear the cache.
+Please note that the chatbot caches your previous conversations by default. To clear the cache and start a new conversation, simply type "###" and submit.
