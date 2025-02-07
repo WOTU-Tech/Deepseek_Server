@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Query App</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            /* Add background image */
+            background-image: url('{{ url_for("static", filename="files/background.jpg") }}'); /* Replace with your image path */
+            background-size: cover; /* Ensures the image covers the entire background */
+            background-position: center; /* Centers the image */
+            background-repeat: no-repeat; /* Prevents the image from repeating */
+        }
+        .container {
+            background: rgba(95, 168, 64, 0.9); /* Slightly transparent white background */
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .response-box {
+            background-color: #0273f5; /* Black background */
+            color: #fff; /* White text */
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 100%;
+            word-wrap: break-word;
+            font-size: 16px;
+            margin-top: 20px;
+            text-align: left;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Optional shadow for better visibility */
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .response {
+            margin-top: 20px;
+            color: #333;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>You Ask Deep, I Seek Deeper</h1>
+        <form method="POST">
+            <input type="text" name="query" placeholder="Type your question... or type ### to clear cache" required>
+            <br>
+            <button type="submit">Submit</button>
+        </form>
+
+        <!-- Chat box -->
+        <div class="chat-box">
+            {% if response %}
+            <div class="response-box">
+                <p>{{ response }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
