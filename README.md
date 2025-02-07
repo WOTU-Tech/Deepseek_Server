@@ -31,13 +31,13 @@ conda env create -f environment.yml
 ## `Step Four`
 Open your terminal and cd into the root folder: /Deepseek_Server
 
-Activate your virtual environment run
+Activate your virtual environment run:
 ```
 python3 __main__.py
 ```
-
+Note: please change the "model_id" in the utils/parameter.yml to the id of the model you downloaded.
 ## `Step Five`
 Open your browser and type in "http://127.0.0.1:5000", and type in your question and submit.
 
 Noted that, the chatbot by default caches your previous conversation, if you wish to clear the cache and restart a new 
-conversation, typ "###" and submit to clear the cache
+conversation, typ "###" and submit to clear the cache.
