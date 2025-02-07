@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request
 from utils.conversation import OllamaChat
 import yaml
+import markdown
 
 
 class ChatBot:
@@ -20,8 +21,14 @@ class ChatBot:
                     response_to_display = "Previous conversation history is cleared, lets start a new conversation!"
                 # print("Chat Response:", chat_response['message']["content"])
                 else:
-                    response = f"{chat_response['message']['content']}"
-                    response_to_display = response.split("</think>")[-1]
+                    raw_response = f"{chat_response['message']['content']}"
+                    markdown_response = markdown.markdown(
+                        raw_response, extensions=["fenced_code"]
+                    )  # handle markdown text
+                    markdown_response = markdown_response.replace(
+                        "```", ""
+                    )  # handle math symbols
+                    response_to_display = markdown_response.split("</think>")[-1]
             return render_template("base.html", response=response_to_display)
 
     def run(self):
