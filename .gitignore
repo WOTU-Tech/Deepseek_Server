@@ -1,4 +1,6 @@
 secrets
 
+.idea
+.git
 # Virtual env folder
 /venv
