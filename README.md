@@ -6,7 +6,7 @@ This repository provides a step-by-step guide to setting up the DeepSeek R1 serv
 
 Please pardon the rudimentary web design. This repository is intended to serve as a template for the local deployment of the DeepSeek-R1 model and its integration with a web API. You are encouraged to modify and optimize it as needed.
 
-![background.jpg](static/files/background.jpg)
+![api_screenshot.png](static/files/api_screenshot.png)
 
 ## `Step One`
 Install Ollama with one command:
