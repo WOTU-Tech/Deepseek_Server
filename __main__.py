@@ -25,7 +25,7 @@ class ChatBot:
             return render_template("base.html", response=response_to_display)
 
     def run(self):
-        self.app.run(debug=True)
+        self.app.run(debug=True, host="0.0.0.0", port=5000)
 
 
 if __name__ == "__main__":
@@ -34,5 +34,4 @@ if __name__ == "__main__":
         model_parameter = yaml.safe_load(file)
 
     chat_bot = ChatBot(model=model_parameter["model"])
-    chat_bot.run()
     chat_bot.run()
