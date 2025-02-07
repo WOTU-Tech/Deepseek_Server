@@ -2,7 +2,7 @@
 
 # `Deepseek_Server`
 
-This repository provides a step-by-step guide to setting up the DeepSeek R1 server powered by Ollama. The server is designed to expose a user-friendly HTML endpoint for seamless interaction, making it easy to access and query AI models deployed on the backend. With its lightweight architecture and efficient API design, this solution is ideal for serving AI-driven applications and research projects.
+This repository provides a step-by-step guide to setting up the DeepSeek R1 server powered by Ollama. The server is designed to expose a user-friendly HTML endpoint for seamless interaction, making it easy to access and query AI models deployed on your local device. With its lightweight architecture and API design, you can enjoy the convenience and have fun exploring the capabilities of this leading model.
 
 Please pardon the rudimentary web design. This repository is intended to serve as a template for the local deployment of the DeepSeek-R1 model and its integration with a web API. You are encouraged to modify and optimize it as needed.
 
