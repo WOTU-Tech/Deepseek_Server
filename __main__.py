@@ -27,11 +27,12 @@ class ChatBot:
     def run(self):
         self.app.run(debug=True)
 
+
 if __name__ == "__main__":
     # Load the YAML file
     with open("utils/parameter.yml", "r") as file:
         model_parameter = yaml.safe_load(file)
 
-    chat_bot = ChatBot(model = model_parameter["model"])
+    chat_bot = ChatBot(model=model_parameter["model"])
     chat_bot.run()
     chat_bot.run()
