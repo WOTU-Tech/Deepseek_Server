@@ -87,6 +87,52 @@
             border-radius: 3px;
             font-family: 'Courier New', Courier, monospace;
         }
+        #dropZone {
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            background-color: rgba(0, 123, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        #dropZone:hover,
+        #dropZone.dragover {
+            border-color: #0056b3;
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        #dropZone p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        #fileInput {
+            display: none;
+        }
+        .document-list {
+            margin-top: 15px;
+            text-align: left;
+        }
+        .document-item {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+        .document-item button {
+            padding: 5px 10px;
+            font-size: 11px;
+            background-color: #dc3545;
+            margin-left: 10px;
+        }
+        .document-item button:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 <body>
@@ -95,8 +141,22 @@
         <form method="POST">
             <input type="text" name="query" placeholder="Type your question... or type ### to clear cache" required>
             <br>
+            <label style="display: flex; align-items: center; justify-content: center; margin: 10px 0;">
+                <input type="checkbox" name="use_tools" checked style="margin-right: 8px;">
+                <span style="font-size: 14px;">Enable Tools (web search, calculator)</span>
+            </label>
             <button type="submit">Submit</button>
         </form>
+
+        <!-- Document drop zone -->
+        <div id="dropZone">
+            <p>Drag & drop a document here</p>
+            <p style="font-size: 12px; color: #999;">or click to browse (TXT, PDF, DOCX, MD)</p>
+        </div>
+        <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.md">
+
+        <!-- Document list -->
+        <div class="document-list" id="documentList"></div>
 
         <!-- Chat box -->
         <div class="chat-box">
@@ -107,5 +167,105 @@
             {% endif %}
         </div>
     </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const documentList = document.getElementById('documentList');
+
+        // Click to browse
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                uploadFile(e.target.files[0]);
+                fileInput.value = '';
+            }
+        });
+
+        // Drag and drop events
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+            });
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            if (e.dataTransfer.files.length > 0) {
+                uploadFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            dropZone.querySelector('p').textContent = 'Uploading...';
+
+            fetch('/v1/api/documents/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    dropZone.querySelector('p').textContent = data.message;
+                    setTimeout(() => loadDocuments(), 2000);
+                } else {
+                    dropZone.querySelector('p').textContent = 'Error: ' + data.error;
+                    setTimeout(() => resetDropZone(), 3000);
+                }
+            })
+            .catch(err => {
+                dropZone.querySelector('p').textContent = 'Upload failed: ' + err;
+                setTimeout(() => resetDropZone(), 3000);
+            });
+        }
+
+        function resetDropZone() {
+            dropZone.querySelector('p').textContent = 'Drag & drop a document here';
+        }
+
+        function loadDocuments() {
+            fetch('/v1/api/documents/list')
+            .then(res => res.json())
+            .then(data => {
+                documentList.innerHTML = '';
+                if (data.documents.length === 0) return;
+
+                data.documents.forEach(doc => {
+                    const item = document.createElement('div');
+                    item.className = 'document-item';
+                    item.innerHTML = `
+                        <span><a href="#" onclick="event.preventDefault(); copyDocId('${doc.id}')" title="Click to copy ID" style="color: #90caf4; text-decoration: underline;">${doc.filename}</a> (${doc.chunk_count} chunks)</span>
+                        <button onclick="deleteDocument('${doc.id}')">Delete</button>
+                    `;
+                    documentList.appendChild(item);
+                });
+            });
+        }
+
+        function deleteDocument(docId) {
+            fetch(`/v1/api/documents/${docId}/delete`, { method: 'DELETE' })
+            .then(() => loadDocuments());
+        }
+
+        function copyDocId(docId) {
+            navigator.clipboard.writeText(docId).then(() => {
+                alert('Copied document ID: ' + docId);
+            });
+        }
+
+        // Load documents on page load
+        loadDocuments();
+    </script>
 </body>
 </html>

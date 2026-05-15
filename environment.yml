@@ -39,6 +39,8 @@ dependencies:
     - pathspec==0.12.1
     - pip==25.0
     - platformdirs==4.3.6
+    - pypdf2==3.0.1
+    - python-docx==1.1.2
     - pydantic==2.10.6
     - pydantic-core==2.27.2
     - pyyaml==6.0.2
