@@ -28,43 +28,53 @@
         .container {
             background: rgba(95, 168, 64, 0.9); /* Slightly transparent white background */
             padding: 30px;
-            max-width: 400px;
-            width: 100%;
+            max-width: 900px;
+            width: 95%;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             text-align: center;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         .response-box {
             background-color: #0273f5; /* Black background */
             color: #fff; /* White text */
-            padding: 15px;
+            padding: 20px;
             border-radius: 8px;
             max-width: 100%;
             word-wrap: break-word;
             font-size: 16px;
             margin-top: 20px;
             text-align: left;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Optional shadow for better visibility */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.6;
         }
 
         h1 {
             font-size: 24px;
             margin-bottom: 20px;
+            color: #fff;
         }
         input[type="text"] {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin: 15px 0;
             border: 1px solid #ddd;
             border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
         }
         button {
-            padding: 10px 20px;
+            padding: 12px 30px;
             background-color: #007bff;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
         }
         button:hover {
             background-color: #0056b3;
@@ -76,9 +86,12 @@
         }
         pre {
             background-color: #020202;
-            padding: 10px;
+            padding: 15px;
             border-radius: 5px;
             overflow-x: auto;
+            max-width: 100%;
+            font-size: 13px;
+            line-height: 1.4;
         }
 
         code {
@@ -86,6 +99,7 @@
             padding: 2px 4px;
             border-radius: 3px;
             font-family: 'Courier New', Courier, monospace;
+            word-break: break-word;
         }
         #dropZone {
             border: 2px dashed #007bff;
@@ -107,14 +121,18 @@
             font-size: 14px;
             color: #666;
         }
-        #fileInput {
+        #dropZone .small-hint {
+            font-size: 12px;
+            color: #999;
+        }
+         #fileInput, #imageInput {
             display: none;
         }
         .document-list {
             margin-top: 15px;
             text-align: left;
         }
-        .document-item {
+        .file-item {
             background-color: rgba(255, 255, 255, 0.1);
             padding: 10px;
             margin: 5px 0;
@@ -124,14 +142,17 @@
             align-items: center;
             font-size: 12px;
         }
-        .document-item button {
+        .file-item button {
             padding: 5px 10px;
             font-size: 11px;
             background-color: #dc3545;
             margin-left: 10px;
         }
-        .document-item button:hover {
+        .file-item button:hover {
             background-color: #c82333;
+        }
+        .file-item .file-icon {
+            margin-right: 6px;
         }
     </style>
 </head>
@@ -148,15 +169,15 @@
             <button type="submit">Submit</button>
         </form>
 
-        <!-- Document drop zone -->
+  <!-- Combined file drop zone -->
         <div id="dropZone">
-            <p>Drag & drop a document here</p>
-            <p style="font-size: 12px; color: #999;">or click to browse (TXT, PDF, DOCX, MD)</p>
+            <p>Drag & drop documents or images here</p>
+            <p class="small-hint">or click to browse (TXT, PDF, DOCX, MD, JPG, PNG, GIF, WEBP)</p>
         </div>
-        <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.md">
+        <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.md,image/jpeg,image/png,image/gif,image/webp">
 
-        <!-- Document list -->
-        <div class="document-list" id="documentList"></div>
+        <!-- Unified file list -->
+        <div class="document-list" id="fileList"></div>
 
         <!-- Chat box -->
         <div class="chat-box">
@@ -171,14 +192,14 @@
     <script>
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
-        const documentList = document.getElementById('documentList');
+        const fileList = document.getElementById('fileList');
 
         // Click to browse
         dropZone.addEventListener('click', () => fileInput.click());
 
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
-                uploadFile(e.target.files[0]);
+                routeAndUpload(e.target.files[0]);
                 fileInput.value = '';
             }
         });
@@ -199,26 +220,32 @@
         });
 
         dropZone.addEventListener('drop', (e) => {
-            if (e.dataTransfer.files.length > 0) {
-                uploadFile(e.dataTransfer.files[0]);
-            }
+            if (e.dataTransfer.files.length === 0) return;
+            const files = Array.from(e.dataTransfer.files);
+            files.forEach(f => routeAndUpload(f));
         });
 
-        function uploadFile(file) {
+        function isImage(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+        }
+
+        function routeAndUpload(file) {
             const formData = new FormData();
             formData.append('file', file);
+            const url = isImage(file.name) ? '/v1/api/images/upload' : '/v1/api/documents/upload';
 
-            dropZone.querySelector('p').textContent = 'Uploading...';
+            dropZone.querySelector('p').textContent = 'Uploading ' + file.name + '...';
 
-            fetch('/v1/api/documents/upload', {
-                method: 'POST',
-                body: formData
-            })
+            fetch(url, { method: 'POST', body: formData })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
                     dropZone.querySelector('p').textContent = data.message;
-                    setTimeout(() => loadDocuments(), 2000);
+                    setTimeout(() => {
+                        loadFileList();
+                        dropZone.querySelector('p').textContent = 'Drag & drop documents or images here';
+                    }, 1500);
                 } else {
                     dropZone.querySelector('p').textContent = 'Error: ' + data.error;
                     setTimeout(() => resetDropZone(), 3000);
@@ -231,31 +258,44 @@
         }
 
         function resetDropZone() {
-            dropZone.querySelector('p').textContent = 'Drag & drop a document here';
+            dropZone.querySelector('p').textContent = 'Drag & drop documents or images here';
         }
 
-        function loadDocuments() {
-            fetch('/v1/api/documents/list')
-            .then(res => res.json())
-            .then(data => {
-                documentList.innerHTML = '';
-                if (data.documents.length === 0) return;
+        function loadFileList() {
+            fileList.innerHTML = '';
+            const docPromise = fetch('/v1/api/documents/list').then(res => res.json());
+            const imgPromise = fetch('/v1/api/images/list').then(res => res.json());
 
-                data.documents.forEach(doc => {
+            Promise.all([docPromise, imgPromise]).then(([docData, imgData]) => {
+                docData.documents.forEach(doc => {
                     const item = document.createElement('div');
-                    item.className = 'document-item';
+                    item.className = 'file-item';
                     item.innerHTML = `
-                        <span><a href="#" onclick="event.preventDefault(); copyDocId('${doc.id}')" title="Click to copy ID" style="color: #90caf4; text-decoration: underline;">${doc.filename}</a> (${doc.chunk_count} chunks)</span>
+                        <span><a href="#" onclick="event.preventDefault(); copyDocId('${doc.id}')" title="Click to copy ID" style="color: #90caf4; text-decoration: underline;"><span class="file-icon">📄</span>${doc.filename}</a> (${doc.chunk_count} chunks)</span>
                         <button onclick="deleteDocument('${doc.id}')">Delete</button>
                     `;
-                    documentList.appendChild(item);
+                    fileList.appendChild(item);
+                });
+                imgData.images.forEach(img => {
+                    const item = document.createElement('div');
+                    item.className = 'file-item';
+                    item.innerHTML = `
+                        <span><span class="file-icon">🖼️</span>${img.filename}</span>
+                        <button onclick="deleteImage('${img.id}')">Delete</button>
+                    `;
+                    fileList.appendChild(item);
                 });
             });
         }
 
         function deleteDocument(docId) {
             fetch(`/v1/api/documents/${docId}/delete`, { method: 'DELETE' })
-            .then(() => loadDocuments());
+            .then(() => loadFileList());
+        }
+
+        function deleteImage(imageId) {
+            fetch(`/v1/api/images/${imageId}/delete`, { method: 'DELETE' })
+            .then(() => loadFileList());
         }
 
         function copyDocId(docId) {
@@ -264,8 +304,8 @@
             });
         }
 
-        // Load documents on page load
-        loadDocuments();
+        // Load files on page load
+        loadFileList();
     </script>
 </body>
 </html>

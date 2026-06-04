@@ -1,8 +1,11 @@
 """
 Tool/Skill implementations for the chatbot
 """
+import ast
+import math
 import requests
 import json
+import re
 
 
 class WebSearchTool:
@@ -42,10 +45,18 @@ class WebSearchTool:
                     url = result.get("FirstURL", "No URL")
                     results.append(f"{i}. {title}\n   URL: {url}")
 
+            # Add heading for context
+            if data.get("Heading"):
+                results.insert(0, f"Topic: {data['Heading']}")
+
             if results:
                 return "\n".join(results)
             else:
-                return "No results found for the query."
+                return (
+                    f"No results found for '{query}'. "
+                    f"DuckDuckGo API does not have specific information about this topic. "
+                    f"You may not have real-time knowledge about this subject."
+                )
 
         except Exception as e:
             return f"Web search failed: {str(e)}"
@@ -80,21 +91,128 @@ class WebSearchTool:
 class CalculatorTool:
     """Simple calculator tool for math operations"""
 
-    @staticmethod
-    def calculate(expression: str) -> str:
-        """
-        Safely evaluate a math expression
+    # Whitelist of allowed AST node types (only math operations)
+    _ALLOWED_AST = {
+        ast.Constant, ast.UnaryOp, ast.BinOp, ast.Call, ast.Add, ast.Sub,
+        ast.Mult, ast.Div, ast.Pow, ast.Mod, ast.Name,
+    }
 
-        :param expression: Math expression (e.g., "2 + 2 * 3")
+    # Whitelist of allowed built-in math functions
+    _SAFE_MATH = {
+        "abs": abs, "round": round, "floor": math.floor,
+        "ceil": math.ceil, "sqrt": math.sqrt, "sin": math.sin,
+        "cos": math.cos, "tan": math.tan, "pi": math.pi,
+        "e": math.e, "log": math.log, "log10": math.log10,
+        "exp": math.exp, "degrees": math.degrees, "radians": math.radians,
+    }
+
+    @classmethod
+    def _validate_ast(cls, node: ast.AST) -> bool:
+        """Recursively validate that an AST node contains only safe math operations."""
+        if type(node) not in cls._ALLOWED_AST:
+            # Allow UnaryOp to have a Minus operand
+            if type(node) == ast.UnaryOp:
+                return cls._validate_ast(node.operand)
+            return False
+        for child in ast.iter_child_nodes(node):
+            if not cls._validate_ast(child):
+                return False
+        return True
+
+    @classmethod
+    def _evaluate(cls, node: ast.AST) -> float:
+        """Safely evaluate a validated AST node."""
+        if isinstance(node, ast.Constant):
+            if not isinstance(node.value, (int, float)):
+                raise ValueError("Non-numeric constant")
+            return float(node.value)
+
+        if isinstance(node, ast.UnaryOp):
+            operand = cls._evaluate(node.operand)
+            if isinstance(node.op, ast.USub):
+                return -operand
+            if isinstance(node.op, ast.UAdd):
+                return operand
+            raise ValueError(f"Unsupported unary operator: {type(node.op).__name__}")
+
+        if isinstance(node, ast.BinOp):
+            return cls._parse_binop(node)
+
+        if isinstance(node, ast.Call):
+            return cls._parse_function_call(node)
+
+        raise ValueError(f"Unexpected AST node: {type(node).__name__}")
+
+    @classmethod
+    def _parse_function_call(cls, node: ast.Call) -> float:
+        """Safely evaluate a function call like sqrt(16)."""
+        if not isinstance(node.func, ast.Name):
+            raise ValueError("Invalid function call")
+        name = node.func.id
+        if name not in cls._SAFE_MATH:
+            raise ValueError(f"Function '{name}' not allowed")
+        func = cls._SAFE_MATH[name]
+        if not node.args:
+            raise ValueError(f"No arguments for {name}")
+        args = [cls._evaluate(a) for a in node.args]
+        return func(*args)
+
+    @classmethod
+    def _parse_binop(cls, node: ast.BinOp) -> float:
+        """Safely evaluate a binary operation."""
+        left = cls._evaluate(node.left)
+        right = cls._evaluate(node.right)
+        if isinstance(node.op, ast.Add):
+            return left + right
+        if isinstance(node.op, ast.Sub):
+            return left - right
+        if isinstance(node.op, ast.Mult):
+            return left * right
+        if isinstance(node.op, ast.Div):
+            if right == 0:
+                raise ZeroDivisionError("Division by zero")
+            return left / right
+        if isinstance(node.op, ast.Pow):
+            return left ** right
+        if isinstance(node.op, ast.Mod):
+            if right == 0:
+                raise ZeroDivisionError("Modulo by zero")
+            return left % right
+        raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
+
+    @classmethod
+    def calculate(cls, expression: str) -> str:
+        """
+        Safely evaluate a math expression using AST analysis.
+
+        :param expression: Math expression (e.g., "2 + 2 * 3", "sqrt(16)", "sin(pi/2)")
         :return: Result of the calculation
         """
+        expression = expression.strip()
+        if not expression:
+            return "Calculation failed: empty expression"
+        # Reject anything that looks like it could be code injection
+        suspicious = re.search(
+            r'(?i)(?:import |__|eval\(|exec\(|compile\(|open\(|lambda |assert |\bdef\b|\bclass\b)',
+            expression,
+        )
+        if suspicious:
+            return "Calculation failed: expression contains disallowed constructs"
         try:
-            # Only allow safe math operations
-            allowed_names = {"__builtins__": {}}
-            result = eval(expression, allowed_names)
+            tree = ast.parse(expression, mode="eval")
+            if not cls._validate_ast(tree.body):
+                return "Calculation failed: expression contains disallowed operations"
+            result = cls._evaluate(tree.body)
+            # Format: drop trailing .0 for integers
+            if isinstance(result, float) and result.is_integer() and not (result == float("inf") or result == float("-inf")):
+                return str(int(result))
             return str(result)
+        except SyntaxError as e:
+            return f"Calculation failed: invalid syntax ({e})"
+        except (ValueError, ZeroDivisionError) as e:
+            return f"Calculation failed: {e}"
         except Exception as e:
-            return f"Calculation failed: {str(e)}"
+            return f"Calculation failed: unexpected error ({e})"
 
     @staticmethod
     def get_definition():
